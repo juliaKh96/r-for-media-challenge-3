@@ -19,29 +19,24 @@ library(readr)
 stadtteil_profil <- readRDS("C:/Users/julia/Desktop/Wahlpflicht- R/all_about_data/data/stadtteil_profil.rds")
 wahlergebnisse <- readRDS("C:/Users/julia/Desktop/Wahlpflicht- R/all_about_data/data/wahlergebnisse.rds")
 
-
 table<-wahlergebnisse %>% 
-  mutate(turn_out=((wahlende/wahlberechtigte_insgesamt)*100)) %>% 
-  select(bezeichnung, turn_out) 
+  mutate(turn_out=((wahlende/wahlberechtigte_insgesamt))) %>%
+  mutate(afd=(af_d/gultige_stimmen)) %>% 
+  select(bezeichnung, turn_out, afd)
 
 table2<-wahlergebnisse %>% 
-  group_by(bezeichnung) %>% 
-  summarise(
-    across(c(spd, cdu, die_linke, fdp, grune, af_d, freie_wahler, odp, piraten, volt_hamburg, di_b, menschliche_welt, sedat_ayhan, sldp), .fns = sum, na_rm=TRUE), 
-    .groups="drop"
-  ) %>% 
-  select(bezeichnung, af_d) %>% 
+  mutate(across(c(spd, cdu, die_linke, fdp, grune, af_d, freie_wahler, odp, piraten, volt_hamburg, di_b, menschliche_welt, sedat_ayhan, sldp), function(c){
+    c/gultige_stimmen
+  })) %>% 
   left_join(table)
 
 
 combined <-stadtteil_profil %>% 
-  select( stadtteil, bevolkerung, bevolkerung_mit_migrations_hintergrund, anteil_der_bevolkerung_mit_migrations_hintergrund_in_percent) %>% 
-  mutate(mig_ratio=((bevolkerung/bevolkerung_mit_migrations_hintergrund)*anteil_der_bevolkerung_mit_migrations_hintergrund_in_percent)) %>% 
-  select(stadtteil, mig_ratio) %>% 
-  left_join(table, by=c("stadtteil" = "bezeichnung"))
-
-colnames(combined)[colnames(combined)=="af_d"]<-"afd"
-
+  select( stadtteil, bevolkerung, bevolkerung_mit_migrations_hintergrund) %>% 
+  mutate(mig_ratio=((bevolkerung_mit_migrations_hintergrund/bevolkerung))) %>% 
+  left_join(table2, by=c("stadtteil" = "bezeichnung")) %>% 
+  select(stadtteil, mig_ratio, turn_out, afd) %>% 
+  arrange(desc(afd))
 
 if (
   assert_that(
